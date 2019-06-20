@@ -1,8 +1,14 @@
 import goods
 import os
+import logging
 
 
 class Shop:
+    logging.basicConfig(
+        filename='shop.log',
+        format='%(asctime)s - %(levelname)s - %(message)s',
+
+    )
 
     def __init__(self):
         self.current_name = []
@@ -15,6 +21,12 @@ class Shop:
             uname = input('请输入用户名:').strip()
             pwd1 = input('请输入密码:').strip()
             pwd2 = input('请再次输入密码:').strip()
+            with open('username', 'r', encoding='utf-8') as f:
+                for line in f:
+                    l = line.strip().split(',')
+                    if uname == l[0]:
+                        print('用户名已存在，请重新输入。')
+                        flag = False
             if not uname.isalpha():
                 print('用户名必须是全英文的')
                 continue
@@ -46,6 +58,9 @@ class Shop:
                         print('登陆成功')
                         self.current_name.append(uname)
                         flag = False
+                        break
+                else:
+                    print('用户名或密码错误')
 
     # 余额
     def balance(self):
@@ -60,15 +75,20 @@ class Shop:
         else:
             print('请先登录...')
 
+    # 退出当前账户
+    def out_of_account(self):
+        self.current_name.pop(0)
+        # print(self.current_name)
+
     # 商品列表
     def buy_shop_goods(self):
         flag = True
         if self.current_name:
             for i in self.shop_goods_name:
-                print('书名: %s' % (i['name']))
+                print('书名: <%s>' % (i['name']))
             # print(self.shop_goods_name)
             while flag:
-                b_name = input('输入书名查看详情:').strip()
+                b_name = input('输入书名查看详情(按q退至主页面):').strip()
                 for i in self.shop_goods_name:
                     if b_name == i['name']:
                         print(i)
@@ -77,29 +97,36 @@ class Shop:
                         if choice == 'n':
                             break
                         elif choice == 'y':
+
                             with open('username', 'r', encoding='utf-8') as fr,\
                                 open('new_username', 'w', encoding='utf-8') as fw:
+
                                 for line in fr:
                                     l = line.strip().split(',')
                                     if self.current_name[0] == l[0]:
-                                        new_balance = float(l[2]) - float(i['price'])
-                                        l[2] = round(new_balance, 1)
-                                        print('购买成功')
+                                        # 进行一次判断，账户中的余额是否能够支持这次购买
+                                        if float(l[2]) >= float(i['price']):
+                                            new_balance = float(l[2]) - float(i['price'])
+                                            l[2] = round(new_balance, 1)
+                                            print('购买成功')
+                                            # print(i['name'])
+                                            # 插入日志操作
+                                            logging.error('用户名为<%s>的用户购买了<%s>,当前余额还剩<%s>' % (l[0], i['name'], l[2]))
+                                        else:
+                                            print('当前账户余额应不支持你这次的购买了....')
                                     l = [str(i) for i in l]
                                     l = ','.join(l)
                                     fw.write(l+'\n')
                             os.remove('username')
                             os.rename('new_username', 'username')
-                                        # print(new_balance)
-
-                                    # break
-                            # new_balance = balance - int(i['price'])
-                            # print(new_balance)
-                        # elif choice == 'q':
-                        #     break
                             break
+                        # elif b_name == 'q':
+                        #     flag = False
                         else:
                             print('请理性输入')
+                    elif b_name == "q":
+                        flag = False
+                        break
                 else:
                     print('请输入正确的书名...')
         else:
@@ -112,19 +139,23 @@ class Shop:
                 2: '登陆',
                 3: '余额',
                 4: '查看商品',
+                5: '退出当前账户',
             }
             for i in s:
                 print('%s.%s' % (i, s[i]))
-            choice = input('请选择序号操作:').strip()
+            choice = input('请选择序号操作(q退出):').strip()
             if choice == '1':
                 self.register()
             elif choice == '2':
                 self.login()
             elif choice == '3':
-                 self.balance()
+                self.balance()
             elif choice == '4':
                 self.buy_shop_goods()
-
+            elif choice == '5':
+                self.out_of_account()
+            elif choice == 'q':
+                break
             else:
                 print('输入错误请重新输入...')
 
