@@ -2,13 +2,23 @@ import goods
 import os
 import logging
 
+file_handler = logging.FileHandler('shop.log', 'a', encoding='utf-8')
+file_handler.setFormatter(logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s'))
+logger1 = logging.Logger('A', level=40)
+logger1.addHandler(file_handler)
+
+file_handler2 = logging.FileHandler('recharge.log', 'a', encoding='utf-8')
+file_handler2.setFormatter(logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s'))
+logger2 = logging.Logger('B', level=40)
+logger2.addHandler(file_handler2)
+
 
 class Shop:
-    logging.basicConfig(
-        filename='shop.log',
-        format='%(asctime)s - %(levelname)s - %(message)s',
-
-    )
+    # logging.basicConfig(
+    #     filename='shop.log',
+    #     format='%(asctime)s - %(levelname)s - %(message)s',
+    #
+    # )
 
     def __init__(self):
         self.current_name = []
@@ -44,23 +54,28 @@ class Shop:
                 with open('username', 'a', encoding='utf-8') as f:
                     f.write('%s,%s,%s\n' % (uname, pwd2, balance))
                     flag = False
+                    print('注册成功')
 
     # 登陆
     def login(self):
         flag = True
-        while flag:
-            uname = input('请输入用户名:').strip()
-            pwd = input('请输入密码:').strip()
-            with open('username', 'r', encoding='utf-8') as f:
-                for line in f:
-                    l = line.strip().split(',')
-                    if uname == l[0] and pwd == l[1]:
-                        print('登陆成功')
-                        self.current_name.append(uname)
-                        flag = False
-                        break
-                else:
-                    print('用户名或密码错误')
+        # 判断是否已经有账号登陆了
+        if len(self.current_name) == 0:
+            while flag:
+                uname = input('请输入用户名:').strip()
+                pwd = input('请输入密码:').strip()
+                with open('username', 'r', encoding='utf-8') as f:
+                    for line in f:
+                        l = line.strip().split(',')
+                        if uname == l[0] and pwd == l[1]:
+                            print('登陆成功')
+                            self.current_name.append(uname)
+                            flag = False
+                            break
+                    else:
+                        print('用户名或密码错误')
+        else:
+            print('当前已有账号登陆')
 
     # 余额
     def balance(self):
@@ -77,7 +92,11 @@ class Shop:
 
     # 退出当前账户
     def out_of_account(self):
-        self.current_name.pop(0)
+        if self.current_name:
+            self.current_name.pop()
+            print('成功退出当前帐号')
+        else:
+            print('当前你还没有进行登录...')
         # print(self.current_name)
 
     # 商品列表
@@ -109,14 +128,15 @@ class Shop:
                                             new_balance = float(l[2]) - float(i['price'])
                                             l[2] = round(new_balance, 1)
                                             print('购买成功')
+                                            logger1.error('用户名为<%s>的用户购买了<%s>,当前余额还剩<%s>' % (l[0], i['name'], l[2]))
                                             # print(i['name'])
                                             # 插入日志操作
-                                            logging.error('用户名为<%s>的用户购买了<%s>,当前余额还剩<%s>' % (l[0], i['name'], l[2]))
                                         else:
                                             print('当前账户余额应不支持你这次的购买了....')
                                     l = [str(i) for i in l]
                                     l = ','.join(l)
                                     fw.write(l+'\n')
+
                             os.remove('username')
                             os.rename('new_username', 'username')
                             break
@@ -132,6 +152,35 @@ class Shop:
         else:
             print('请先登录...')
 
+    # 充值
+    def recharge(self):
+        flag = True
+        if self.current_name:
+            while flag:
+                price = input('请输入你想充值的金额:').strip()
+                if price.isdigit() or float(price) > 0:
+                    with open('username', 'r', encoding='utf-8') as fr, \
+                        open('new_username', 'w', encoding='utf-8') as fw:
+                        for line in fr:
+                            l = line.strip().split(',')
+                            if self.current_name[0] == l[0]:
+                                l[2] = float(l[2]) + float(price)
+                                logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
+                            l = [str(i) for i in l]
+                            l = ','.join(l)
+                            fw.write(l+'\n')
+                            # logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
+
+                    os.remove('username')
+                    os.rename('new_username', 'username')
+                    print('充值成功')
+                    flag = False
+
+                else:
+                    print('您输入的金额数产生了错误')
+        else:
+            print('请先选择账户进行登陆')
+
     def main(self):
         while 1:
             s = {
@@ -140,6 +189,7 @@ class Shop:
                 3: '余额',
                 4: '查看商品',
                 5: '退出当前账户',
+                6: '充值',
             }
             for i in s:
                 print('%s.%s' % (i, s[i]))
@@ -154,6 +204,8 @@ class Shop:
                 self.buy_shop_goods()
             elif choice == '5':
                 self.out_of_account()
+            elif choice == '6':
+                self.recharge()
             elif choice == 'q':
                 break
             else:
