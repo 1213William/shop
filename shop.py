@@ -18,10 +18,38 @@ logger3 = logging.Logger('C', level=40)
 logger3.addHandler(file_handler3)
 
 
+# 用户登录的装饰器
+class Wrapper:
+
+    def __init__(self, current_name):
+        self.current_name = current_name
+
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            flag = True
+            if self.current_name:
+                func(*args, **kwargs)
+            else:
+                while flag:
+                    print('当前还没有登陆,请先去登陆...')
+                    user_name = input('请输入用户名:').strip()
+                    pwd = input('请输入密码:').strip()
+                    with open('user_info', 'r', encoding='utf-8') as f:
+                        for line in f:
+                            li = line.strip().split(',')
+                            if user_name == li[0] and pwd == li[1]:
+                                print('登陆成功')
+                                self.current_name.append(user_name)
+                                flag = False
+                                break
+        return wrapper
+
+
 class Shop:
+    current_name = []
 
     def __init__(self):
-        self.current_name = []
+        # self.current_name = []
         self.shop_goods_name = goods.books
 
     def register(self):
@@ -77,17 +105,15 @@ class Shop:
                     print('用户名或密码错误')
 
     # 余额
+    @Wrapper(current_name=current_name)
     def balance(self):
-        if self.current_name:
-            with open('user_info', 'r', encoding='utf-8') as f:
-                for line in f:
-                    l = line.strip().split(',')
-                    if self.current_name[0] == l[0]:
-                        print('当前余额为：%s' % l[2])  # <class 'str'>
-                        return l[2]
-                # print(self.current_name[0])
-        else:
-            print('请先登录...')
+        with open('user_info', 'r', encoding='utf-8') as f:
+            for line in f:
+                l = line.strip().split(',')
+                if self.current_name[0] == l[0]:
+                    print('当前余额为：%s' % l[2])  # <class 'str'>
+                    return l[2]
+            # print(self.current_name[0])
 
     # 退出当前账户
     def out_of_account(self):
@@ -99,124 +125,122 @@ class Shop:
         # print(self.current_name)
 
     # 商品列表(购买)
+    @Wrapper(current_name=current_name)
     def buy_shop_goods(self):
         flag = True
-        if self.current_name:
+
+        for i in self.shop_goods_name:
+            print('书名: <%s>' % (i['name']))
+        # print(self.shop_goods_name)
+        while flag:
+            b_name = input('输入书名查看详情(按q退至主页面):').strip()
             for i in self.shop_goods_name:
-                print('书名: <%s>' % (i['name']))
-            # print(self.shop_goods_name)
-            while flag:
-                b_name = input('输入书名查看详情(按q退至主页面):').strip()
-                for i in self.shop_goods_name:
-                    if b_name == i['name']:
-                        print(i)
-                        print('是否进行购买:y/n')
-                        choice = input('>>').strip()
-                        if choice == 'n':
-                            break
-                        elif choice == 'y':
-
-                            with open('user_info', 'r', encoding='utf-8') as fr,\
-                                open('new_username', 'w', encoding='utf-8') as fw:
-
-                                for line in fr:
-                                    l = line.strip().split(',')
-                                    if self.current_name[0] == l[0]:
-                                        # 进行一次判断，账户中的余额是否能够支持这次购买
-                                        if float(l[2]) >= float(i['price']):
-                                            new_balance = float(l[2]) - float(i['price'])
-                                            l[2] = round(new_balance, 1)
-                                            print('购买成功')
-                                            logger1.error('用户名为<%s>的用户购买了<%s>,当前余额还剩<%s>' % (l[0], i['name'], l[2]))
-                                            # print(i['name'])
-                                            # 插入日志操作
-                                        else:
-                                            print('当前账户余额应不支持你这次的购买了....')
-                                    l = [str(i) for i in l]
-                                    l = ','.join(l)
-                                    fw.write(l+'\n')
-
-                            os.remove('user_info')
-                            os.rename('new_username', 'user_info')
-                            break
-                        # elif b_name == 'q':
-                        #     flag = False
-                        else:
-                            print('请理性输入')
-                    elif b_name == "q":
-                        flag = False
+                if b_name == i['name']:
+                    print(i)
+                    print('是否进行购买:y/n')
+                    choice = input('>>').strip()
+                    if choice == 'n':
                         break
-                else:
-                    print('请输入正确的书名...')
-        else:
-            print('请先登录...')
+                    elif choice == 'y':
+
+                        with open('user_info', 'r', encoding='utf-8') as fr,\
+                            open('new_username', 'w', encoding='utf-8') as fw:
+
+                            for line in fr:
+                                l = line.strip().split(',')
+                                if self.current_name[0] == l[0]:
+                                    # 进行一次判断，账户中的余额是否能够支持这次购买
+                                    if float(l[2]) >= float(i['price']):
+                                        new_balance = float(l[2]) - float(i['price'])
+                                        l[2] = round(new_balance, 1)
+                                        print('购买成功')
+                                        logger1.error('用户名为<%s>的用户购买了<%s>,当前余额还剩<%s>' % (l[0], i['name'], l[2]))
+                                        # print(i['name'])
+                                        # 插入日志操作
+                                    else:
+                                        print('当前账户余额应不支持你这次的购买了....')
+                                l = [str(i) for i in l]
+                                l = ','.join(l)
+                                fw.write(l+'\n')
+
+                        os.remove('user_info')
+                        os.rename('new_username', 'user_info')
+                        break
+                    # elif b_name == 'q':
+                    #     flag = False
+                    else:
+                        print('请理性输入')
+                elif b_name == "q":
+                    flag = False
+                    break
+            else:
+                print('请输入正确的书名...')
 
     # 充值
+    @Wrapper(current_name=current_name)
     def recharge(self):
         flag = True
-        if self.current_name:
-            while flag:
-                price = input('请输入你想充值的金额:').strip()
-                if price.isdigit() or float(price) > 0:
-                    with open('user_info', 'r', encoding='utf-8') as fr, \
-                        open('new_username', 'w', encoding='utf-8') as fw:
-                        for line in fr:
-                            l = line.strip().split(',')
-                            if self.current_name[0] == l[0]:
-                                l[2] = float(l[2]) + float(price)
-                                logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
-                            l = [str(i) for i in l]
-                            l = ','.join(l)
-                            fw.write(l+'\n')
-                            # logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
 
-                    os.remove('user_info')
-                    os.rename('new_username', 'user_info')
-                    print('充值成功')
-                    flag = False
-
-                else:
-                    print('您输入的金额数产生了错误')
-        else:
-            print('请先选择账户进行登陆')
-
-    # 提现(手续费百分之五)
-    def withdrawal(self):
-        flag = True
-        if self.current_name:
-            while flag:
-                t_money = input('请输入你要提现的金额:').strip()
-                if not t_money.isdigit():
-                    print('请理性输入')
-                    continue
+        while flag:
+            price = input('请输入你想充值的金额:').strip()
+            if price.isdigit() or float(price) > 0:
                 with open('user_info', 'r', encoding='utf-8') as fr, \
-                        open('new_username', 'w', encoding='utf-8') as fw:
+                    open('new_username', 'w', encoding='utf-8') as fw:
                     for line in fr:
                         l = line.strip().split(',')
-                        # 定位到用户那一行
                         if self.current_name[0] == l[0]:
-                            # 对账户内的金额进行一次判断，是否大于要提现的金额
-                            if (float(t_money) + float(t_money) * 0.05) > float(l[2]):
-                                print('超出当前账户内的金额')
-
-                            else:
-                                # print(float(l[2]) + float(t_money) * 0.05)
-                                l[2] = round(float(l[2]) - (float(t_money) + float(t_money) * 0.05))
-                                logger3.error('<%s>体现了<%s>元，当前账户余额为<%s>' % (l[0], t_money, l[2]))
-                                print('提现成功')
-                                # print(round(l[2], 2), type(l[2]))
+                            l[2] = float(l[2]) + float(price)
+                            logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
                         l = [str(i) for i in l]
                         l = ','.join(l)
-                        fw.write(l + '\n')
+                        fw.write(l+'\n')
+                        # logger2.error('用户名为<%s>的用户充值了<%s>,当前余额为<%s>' % (l[0], price, l[2]))
+
                 os.remove('user_info')
                 os.rename('new_username', 'user_info')
-
+                print('充值成功')
                 flag = False
-                    # print(l)
-        else:
-            print('请先去登陆')
+
+            else:
+                print('您输入的金额数产生了错误')
+
+    # 提现(手续费百分之五)
+    @Wrapper(current_name=current_name)
+    def withdrawal(self):
+        flag = True
+
+        while flag:
+            t_money = input('请输入你要提现的金额:').strip()
+            if not t_money.isdigit():
+                print('请理性输入')
+                continue
+            with open('user_info', 'r', encoding='utf-8') as fr, \
+                    open('new_username', 'w', encoding='utf-8') as fw:
+                for line in fr:
+                    l = line.strip().split(',')
+                    # 定位到用户那一行
+                    if self.current_name[0] == l[0]:
+                        # 对账户内的金额进行一次判断，是否大于要提现的金额
+                        if (float(t_money) + float(t_money) * 0.05) > float(l[2]):
+                            print('超出当前账户内的金额')
+
+                        else:
+                            # print(float(l[2]) + float(t_money) * 0.05)
+                            l[2] = round(float(l[2]) - (float(t_money) + float(t_money) * 0.05))
+                            logger3.error('<%s>体现了<%s>元，当前账户余额为<%s>' % (l[0], t_money, l[2]))
+                            print('提现成功')
+                            # print(round(l[2], 2), type(l[2]))
+                    l = [str(i) for i in l]
+                    l = ','.join(l)
+                    fw.write(l + '\n')
+            os.remove('user_info')
+            os.rename('new_username', 'user_info')
+
+            flag = False
+                # print(l)
 
     # 账户切换
+    @Wrapper(current_name=current_name)
     def account_switch(self):
         if len(self.current_name):
             flag = True
@@ -235,54 +259,58 @@ class Shop:
             print('请先去登陆...')
 
     # 转账
+    @Wrapper(current_name=current_name)
     def transfer_accounts(self):
         flag = True
-        while flag:
-            print('请选择要转账的用户(q退出):', self.current_name[1:])
-            # choice == 'egon'
-            choice = input('请输入要转账用户>>:').strip()
-            money = float(input('请输入转账金额>>:').strip())
-            if choice not in self.current_name[1:]:
-                print('请输入正确的账户名...')
-                continue
-            elif choice == self.current_name[0]:
-                print('当前暂不支持给自己转账')
-                continue
-            elif choice == 'q':
-                break
-            else:
+        if len(self.current_name) > 1:
+            while flag:
+                print('请选择要转账的用户(q退出):', self.current_name[1:])
+                # choice == 'egon'
+                choice = input('请输入要转账用户>>:').strip()
+                money = float(input('请输入转账金额>>:').strip())
+                if choice not in self.current_name[1:]:
+                    print('请输入正确的账户名...')
+                    continue
+                elif choice == self.current_name[0]:
+                    print('当前暂不支持给自己转账')
+                    continue
+                elif choice == 'q':
+                    break
+                else:
 
-                with open('user_info', 'r', encoding='utf-8') as fr, \
-                        open('new_username', 'w', encoding='utf-8') as fw:
-                    for line in fr:
-                        l = line.strip().split(',')
-                        if self.current_name[0] == l[0]:
-                            if money > float(l[2]):
-                                print('当前金额暂不支持本次转账')
-                                flag = False
-                                break
-                            else:
-                                l[2] = float(l[2]) - money
-                                print('转账成功')
-                        l = [str(i) for i in l]
-                        l = ','.join(l)
-                        fw.write(l + '\n')
+                    with open('user_info', 'r', encoding='utf-8') as fr, \
+                            open('new_username', 'w', encoding='utf-8') as fw:
+                        for line in fr:
+                            l = line.strip().split(',')
+                            if self.current_name[0] == l[0]:
+                                if money > float(l[2]):
+                                    print('当前金额暂不支持本次转账')
+                                    flag = False
+                                    break
+                                else:
+                                    l[2] = float(l[2]) - money
+                                    print('转账成功')
+                            l = [str(i) for i in l]
+                            l = ','.join(l)
+                            fw.write(l + '\n')
 
-                    os.remove('user_info')
-                    os.rename('new_username', 'user_info')
+                        os.remove('user_info')
+                        os.rename('new_username', 'user_info')
 
-                with open('user_info', 'r', encoding='utf-8') as file_read, \
-                        open('new_username', 'w', encoding='utf-8') as file_write:
-                    for lin in file_read:
-                        new_l = lin.strip().split(',')
-                        if choice == new_l[0]:
-                            new_l[2] = float(new_l[2]) + money
-                        new_l = [str(i) for i in new_l]
-                        new_l = ','.join(new_l)
-                        file_write.write(new_l + '\n')
-                    os.remove('user_info')
-                    os.rename('new_username', 'user_info')
-                    flag = False
+                    with open('user_info', 'r', encoding='utf-8') as file_read, \
+                            open('new_username', 'w', encoding='utf-8') as file_write:
+                        for lin in file_read:
+                            new_l = lin.strip().split(',')
+                            if choice == new_l[0]:
+                                new_l[2] = float(new_l[2]) + money
+                            new_l = [str(i) for i in new_l]
+                            new_l = ','.join(new_l)
+                            file_write.write(new_l + '\n')
+                        os.remove('user_info')
+                        os.rename('new_username', 'user_info')
+                        flag = False
+        else:
+            print('当前只有一个账户，无法进行在线转账')
 
     def main(self):
         while 1:
