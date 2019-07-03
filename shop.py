@@ -116,13 +116,10 @@ class Shop:
             # print(self.current_name[0])
 
     # 退出当前账户
+    @Wrapper(current_name=current_name)
     def out_of_account(self):
-        if self.current_name:
             self.current_name.pop()
             print('成功退出当前帐号')
-        else:
-            print('当前你还没有进行登录...')
-        # print(self.current_name)
 
     # 商品列表(购买)
     @Wrapper(current_name=current_name)
@@ -314,43 +311,67 @@ class Shop:
 
     def main(self):
         while 1:
-            s = {
-                1: '注册',
-                2: '登陆',
-                3: '余额',
-                4: '查看商品',
-                5: '退出当前账户',
-                6: '充值',
-                7: '提现',
-                8: '切换登陆',
-                9: '转账',
-
+            s1 = {
+                1: '管理用户',
+                2: '购物',
             }
-            for i in s:
-                print('%s.%s' % (i, s[i]))
-            choice = input('请选择序号操作(q退出):').strip()
-            if choice == '1':
-                self.register()
-            elif choice == '2':
-                self.login()
-            elif choice == '3':
-                self.balance()
-            elif choice == '4':
-                self.buy_shop_goods()
-            elif choice == '5':
-                self.out_of_account()
-            elif choice == '6':
-                self.recharge()
-            elif choice == '7':
-                self.withdrawal()
-            elif choice == '8':
-                self.account_switch()
-            elif choice == '9':
-                self.transfer_accounts()
-            elif choice == 'q':
+            for i in s1:
+                print('%s.%s' % (i, s1[i]))
+            cho1 = input('请选择序号操作(q退出):').strip()
+            if cho1 == '1':
+                s3 = {
+                    1: '添加账户',
+                    2: '切换账户',
+                    3: '账户提现',
+                    4: '账户转账',
+                    5: '查询余额',
+                    6: '退出当前账户',
+                    7: '账户充值',
+                    8: '账户注册'
+                }
+                for x in s3:
+                    print('%s.%s' % (x, s3[x]))
+                while 1:
+
+                    cho2 = input('请选择序号操作(q退出):').strip()
+                    if cho2 == '1':
+                        self.login()
+                    elif cho2 == '2':
+                        self.account_switch()
+                    elif cho2 == '3':
+                        self.withdrawal()
+                    elif cho2 == '4':
+                        self.transfer_accounts()
+                    elif cho2 == '5':
+                        self.balance()
+                    elif cho2 == '6':
+                        self.out_of_account()
+                    elif cho2 == '7':
+                        self.recharge()
+                    elif cho2 == '8':
+                        self.register()
+                    elif cho2 == 'q':
+                        print('------退出成功------')
+                        break
+                    else:
+                        print('输入错误请重新输入...')
+            elif cho1 == '2':
+                s4 = {
+                        1: '查询并购买商品'
+                    }
+                for y in s4:
+                    print('%s.%s' % (y, s4[y]))
+                while 1:
+                    cho3 = input('请选择序号操作(q退出):').strip()
+                    if cho3 == '1':
+                        self.buy_shop_goods()
+                    elif cho3 == 'q':
+                        print('------退出成功------')
+                        break
+
+            elif cho1 == 'q':
+                print('------退出成功------')
                 break
-            else:
-                print('输入错误请重新输入...')
 
 
 if __name__ == '__main__':
